@@ -1,4 +1,4 @@
-import { connectToMongoDBCluster } from "./index";
+import { connectToMongoDBCluster, connectToMongoDBCollection, CrudOperations, CrudOperationsWithFilter, CrudOperationsWithUpdatedFields } from "./index";
 import config from "../config";
 import { User, userGenerator } from "../generators/user";
 import {
@@ -14,41 +14,24 @@ import {
   WithId,
 } from "mongodb";
 
-export type CrudOperations<T extends Document, S> = (
-  collection: Collection<T>,
-  callback: () => {}
-) => Promise<S>;
-export type CrudOperationsWithFilter<T extends Document, S> = (
-  collection: Collection<T>,
-  filter: Filter<T>,
-  callback: () => {}
-) => Promise<S>;
-export type CrudOperationsWithUpdatedFields<T extends Document, S> = (
-  collection: Collection<T>,
-  filter: Filter<T>,
-  updatedFields: MatchKeysAndValues<T>,
-  callback: () => {}
-) => Promise<S>;
 
-export async function executeUserCrudOperations(
-  crudOperations: CrudOperations<User, any>
-) {
-  const uri = config.db.url;
-  let mongoClient: MongoClient;
-  if (uri) {
-    mongoClient = await connectToMongoDBCluster(uri);
-    if (mongoClient) {
-      const db = mongoClient.db("slightsweet");
-      const collection = db.collection<User>("user");
-      crudOperations(collection, async () => {
-        await mongoClient?.close();
-      });
-    } else {
-    }
-  } else {
-    console.log("Error MongoDB URL");
-  }
-}
+
+// export async function executeUserCrudOperations(
+//   crudOperations: CrudOperations<User, any>|CrudOperationsWithFilter<User, any>|CrudOperationsWithUpdatedFields<User, any>
+// ) {
+//   const uri = config.db.url;
+//   if (uri) {
+//     const [collection,db,mongoClient] = await connectToMongoDBCollection<User>('user',"slightsweet")
+//     if () {
+//       crudOperations(collection, async () => {
+//         await mongoClient?.close();
+//       });
+//     } else {
+//     }
+//   } else {
+//     console.log("Error MongoDB URL");
+//   }
+// }
 
 export const createUser: CrudOperations<User, InsertOneResult<User>> = async (
   collection: Collection<User>

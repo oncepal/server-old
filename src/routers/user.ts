@@ -3,6 +3,7 @@ import type { User, UserFilter } from '../generators/user';
 import { userGenerator } from '../generators/user';
 import { DefaultState, DefaultContext } from 'koa';
 import Router from '@koa/router';
+import { connectToMongoDBCollection } from '../db';
 const { DEBUG, MOCK } = config.mode;
 
 /**
@@ -43,12 +44,11 @@ export const useUserRouter = (router: Router<DefaultState, DefaultContext>) => {
     } else {
       if (DEBUG) console.log();
 
-      const result = await ctx.db.collection('users').find().toArray();
 
       // 盲盒
 
       // const x = parseInt(Math.random() *  result.length)
-      ctx.body = result;
+      // ctx.body = result;
     }
   });
 
@@ -76,16 +76,18 @@ export const useUserRouter = (router: Router<DefaultState, DefaultContext>) => {
    * @return 更新后的用户信息:Response<User>
    */
   router.post<{}, { request: { body: User } }>('/createOrUpdateUser', async (ctx, next) => {
-    const user = ctx.request.body;
+    const userInfo = ctx.request.body
     if (MOCK) {
-      ctx.body = `${'id' in user ? '更新' : '新建'}用户信息成功`;
+      ctx.body = `${'id' in userInfo ? '更新' : '新建'}用户信息成功`;
     } else {
-      if (DEBUG) console.log();
+      if (DEBUG) console.log('新增或编辑用户信息');
       let result;
-      if ('id' in user) result = await ctx.db.collection('users').updateOne((v: User) => v.id == user.id, user);
-      else result = await ctx.db.collection('users').insertOne(user);
-      const userId = result.toString();
-      ctx.body = { userId };
+      const user = userGenerator(userInfo);
+      const [collection,mongoClient] = await connectToMongoDBCollection<User>('user',"slightsweet")
+      if ('id' in user) result = await collection.updateOne((v: User) => v.id == user.id, user);
+      else result = await collection.insertOne(user);
+      await mongoClient?.close();
+      ctx.body = result;
     }
   });
 
